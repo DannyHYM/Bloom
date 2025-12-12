@@ -2,10 +2,23 @@ import SwiftUI
 
 struct CalibrationView: View {
     @StateObject private var viewModel = CalibrationViewModel()
+    @State private var animateInstruction = false
     var onCalibrated: (CGFloat) -> Void
     
     var body: some View {
         ZStack {
+            // MARK: - Background
+            Color.black.ignoresSafeArea()
+            BloomParticles()
+                .opacity(0.5) // Subtle particles
+            
+            // Faded Flower in background
+            FlowerView(isBlooming: true)
+                .scaleEffect(0.8)
+                .opacity(0.3)
+                .blur(radius: 10)
+                .allowsHitTesting(false)
+            
             // MARK: - Input Layer
             TouchInputView { touches in
                 viewModel.updateTouches(touches)
@@ -19,10 +32,33 @@ struct CalibrationView: View {
                         .font(.title2)
                         .fontWeight(.medium)
                         .foregroundStyle(.white)
+                        .opacity(0.8)
                         .multilineTextAlignment(.center)
-                        .padding()
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-                        .padding(.top, 60)
+                        .frame(maxWidth: 280) // Shrink width for better readability
+                        .padding(40)
+                        .background {
+                            ZStack {
+                                // Cloud of blurred gradient
+                                Circle()
+                                    .fill(Color.accentColor.opacity(0.3))
+                                    .frame(width: 180, height: 180)
+                                    .offset(x: -30, y: -20)
+                                    .blur(radius: 50)
+                                
+                                Circle()
+                                    .fill(Color.purple.opacity(0.3))
+                                    .frame(width: 180, height: 180)
+                                    .offset(x: 30, y: 20)
+                                    .blur(radius: 50)
+                            }
+                            // Subtle breathing animation
+                            .scaleEffect(animateInstruction ? 1.1 : 0.9)
+                            .animation(.easeInOut(duration: 4).repeatForever(autoreverses: true), value: animateInstruction)
+                        }
+                        .padding(.top, 40)
+                        .onAppear {
+                            animateInstruction = true
+                        }
                     Spacer()
                 }
                 

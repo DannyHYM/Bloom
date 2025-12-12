@@ -21,12 +21,18 @@ struct BloomView: View {
                     .scaleEffect(isBlooming ? 1.0 : 0.5)
                     .animation(.spring(response: 0.6, dampingFraction: 0.7), value: isBlooming)
                 
-               ZStack {
-                    TargetRing(isMatched: isLeftMatched)
-                        .offset(x: -targetSpan / 2)
+                ZStack {
+                    // Safe span calculation for display
+                    let maxAllowedSpan = geometry.size.width - 100
+                    let actualSpan = min(targetSpan, maxAllowedSpan)
                     
+                    // Left Target (Thumb?)
+                    TargetRing(isMatched: isLeftMatched)
+                        .offset(x: -actualSpan / 2)
+                    
+                    // Right Target (Pinky?)
                     TargetRing(isMatched: isRightMatched)
-                        .offset(x: targetSpan / 2)
+                        .offset(x: actualSpan / 2)
                 }
                 
                 TouchInputView { touches in
@@ -39,15 +45,28 @@ struct BloomView: View {
     }
     
     private func checkGameState(in size: CGSize) {
+        // We need at least 2 touches
         guard userTouches.count >= 2 else {
             withAnimation { isBlooming = false }
             return
         }
         
+        // Simple logic: Do ANY 2 touches fall within the target zones?
+        // We convert touches to view-relative coordinates in TouchInputView.
+        // But wait, TouchInputView returns coordinates relative to itself (Fullscreen).
+        // Our targets are offset from center (0,0) in a ZStack.
+        // We need to normalize coordinates.
+        
+        // Screen center
         let center = CGPoint(x: size.width / 2, y: size.height / 2)
         
-        let leftTarget = CGPoint(x: center.x - targetSpan/2, y: center.y)
-        let rightTarget = CGPoint(x: center.x + targetSpan/2, y: center.y)
+        // Clamp span to fit screen width with padding
+        let maxAllowedSpan = size.width - 100 // 50pt padding on each side
+        let actualSpan = min(targetSpan, maxAllowedSpan)
+        
+        // Target positions in screen space
+        let leftTarget = CGPoint(x: center.x - actualSpan/2, y: center.y)
+        let rightTarget = CGPoint(x: center.x + actualSpan/2, y: center.y)
         
         var leftHit = false
         var rightHit = false

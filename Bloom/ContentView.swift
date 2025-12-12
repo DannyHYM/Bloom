@@ -23,8 +23,9 @@ struct ContentView: View {
             
             switch appState {
             case .calibration:
-                CalibrationView(onCalibrated: { span in
-                    self.handSpan = span
+                CalibrationView(onCalibrated: { _ in
+                    // Demo Mode: Ignore actual calibration, use fixed value
+                    self.handSpan = 200.0
                     withAnimation(.easeInOut(duration: 1.0)) {
                         self.appState = .gardening
                     }

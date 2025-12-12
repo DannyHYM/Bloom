@@ -58,11 +58,11 @@ class ParticleScene: SKScene {
         
         emitter.particleSpeed = 25
         emitter.particleSpeedRange = 15
-        emitter.emissionAngle = .pi / 2       // Mostly upwards
-        emitter.emissionAngleRange = .pi / 2  // But spreading out
+        emitter.emissionAngle = 0             // Center
+        emitter.emissionAngleRange = 2 * .pi  // 360 degrees spread
         
         emitter.xAcceleration = 0
-        emitter.yAcceleration = 15            // Stronger updraft
+        emitter.yAcceleration = 0             // No gravity/wind, just drift
         
         emitter.fieldBitMask = 0 // No physics fields yet, but ready
 
