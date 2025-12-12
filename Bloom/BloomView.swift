@@ -3,6 +3,7 @@ import SwiftUI
 // MARK: - Game Container
 struct BloomView: View {
     var targetSpan: CGFloat = 200 // Default, passed from calibration
+    var onRecalibrate: () -> Void = {} // Callback to trigger recalibration
     
     @State private var isBlooming = false
     @State private var userTouches: [TouchPoint] = []
@@ -39,6 +40,23 @@ struct BloomView: View {
                     self.userTouches = touches
                     checkGameState(in: geometry.size)
                 }
+                
+                // Recalibrate Button (Top Right)
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: onRecalibrate) {
+                            Image(systemName: "hand.raised.fingers.spread")
+                                .font(.title2)
+                                .foregroundStyle(.white.opacity(0.8))
+                                .padding(12)
+                                .background(.ultraThinMaterial, in: Circle())
+                        }
+                        .padding()
+                    }
+                    Spacer()
+                }
+                .zIndex(20)
                 
             }
         }

@@ -33,8 +33,12 @@ struct ContentView: View {
                 .transition(.opacity)
                 
             case .gardening:
-                BloomView(targetSpan: handSpan)
-                    .transition(.opacity)
+                BloomView(targetSpan: handSpan, onRecalibrate: {
+                    withAnimation(.easeInOut(duration: 0.5)) {
+                        self.appState = .calibration
+                    }
+                })
+                .transition(.opacity)
             }
         }
         .preferredColorScheme(.dark)

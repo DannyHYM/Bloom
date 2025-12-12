@@ -61,6 +61,12 @@ class CalibrationViewModel: ObservableObject {
         }
     }
     
+    func reset() {
+        state = .idle
+        activeTouches = []
+        resetCalibration()
+    }
+    
     private func resetCalibration() {
         calibrationTimer?.invalidate()
         calibrationTimer = nil
