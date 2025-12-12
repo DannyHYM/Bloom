@@ -7,10 +7,36 @@
 
 import SwiftUI
 
+enum AppState {
+    case calibration
+    case gardening // The main loop
+}
+
 struct ContentView: View {
+    @State private var appState: AppState = .calibration
+    @State private var handSpan: CGFloat = 200.0 // Default/Fallback
+    
     var body: some View {
-        BloomView()
-            .preferredColorScheme(.dark)
+        ZStack {
+            // Background stays consistent
+            Color.black.ignoresSafeArea()
+            
+            switch appState {
+            case .calibration:
+                CalibrationView(onCalibrated: { span in
+                    self.handSpan = span
+                    withAnimation(.easeInOut(duration: 1.0)) {
+                        self.appState = .gardening
+                    }
+                })
+                .transition(.opacity)
+                
+            case .gardening:
+                BloomView(targetSpan: handSpan)
+                    .transition(.opacity)
+            }
+        }
+        .preferredColorScheme(.dark)
     }
 }
 

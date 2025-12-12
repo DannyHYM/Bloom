@@ -1,29 +1,112 @@
 import SwiftUI
 
+// MARK: - Game Container
 struct BloomView: View {
+    var targetSpan: CGFloat = 200 // Default, passed from calibration
+    
     @State private var isBlooming = false
-    @State private var breathingPhase = 0.0
+    @State private var userTouches: [TouchPoint] = []
+    @State private var matchProgress: CGFloat = 0.0
+    
+    private let tolerance: CGFloat = 40.0 
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                Color.black.ignoresSafeArea()
+                BloomParticles()
+                    .allowsHitTesting(false)
+                
+               FlowerView(isBlooming: isBlooming)
+                    .scaleEffect(isBlooming ? 1.0 : 0.5)
+                    .animation(.spring(response: 0.6, dampingFraction: 0.7), value: isBlooming)
+                
+               ZStack {
+                    TargetRing(isMatched: isLeftMatched)
+                        .offset(x: -targetSpan / 2)
+                    
+                    TargetRing(isMatched: isRightMatched)
+                        .offset(x: targetSpan / 2)
+                }
+                
+                TouchInputView { touches in
+                    self.userTouches = touches
+                    checkGameState(in: geometry.size)
+                }
+                
+            }
+        }
+    }
+    
+    private func checkGameState(in size: CGSize) {
+        guard userTouches.count >= 2 else {
+            withAnimation { isBlooming = false }
+            return
+        }
+        
+        let center = CGPoint(x: size.width / 2, y: size.height / 2)
+        
+        let leftTarget = CGPoint(x: center.x - targetSpan/2, y: center.y)
+        let rightTarget = CGPoint(x: center.x + targetSpan/2, y: center.y)
+        
+        var leftHit = false
+        var rightHit = false
+        
+        for touch in userTouches {
+            if distance(touch.location, leftTarget) < tolerance { leftHit = true }
+            if distance(touch.location, rightTarget) < tolerance { rightHit = true }
+        }
+        
+        let success = leftHit && rightHit
+        withAnimation(.easeInOut(duration: 0.5)) {
+            isBlooming = success
+        }
+    }
+    
+    private var isLeftMatched: Bool {
+        return isBlooming
+    }
+    
+    private var isRightMatched: Bool {
+        return isBlooming
+    }
+    
+    private func distance(_ p1: CGPoint, _ p2: CGPoint) -> CGFloat {
+        return hypot(p1.x - p2.x, p1.y - p2.y)
+    }
+}
+
+struct TargetRing: View {
+    var isMatched: Bool
+    
+    var body: some View {
+        Circle()
+            .stroke(
+                isMatched ? Color.accentColor : Color.white.opacity(0.3),
+                style: StrokeStyle(lineWidth: isMatched ? 4 : 2, dash: isMatched ? [] : [5])
+            )
+            .frame(width: 60, height: 60)
+            .shadow(color: isMatched ? Color.accentColor : .clear, radius: 10)
+            .animation(.easeInOut, value: isMatched)
+    }
+}
+
+// MARK: - Visual Component (Original BloomView)
+struct FlowerView: View {
+    var isBlooming: Bool // Driven by parent
     
     // Palette
-    let mainColor = Color.accentColor // Uses the system/asset accent
+    let mainColor = Color.accentColor
     let secondaryColor = Color.purple
     let tertiaryColor = Color.teal
     
     var body: some View {
         ZStack {
-            // MARK: - Background
-            Color.black.ignoresSafeArea()
-            
-            // MARK: - Ambient Glow
-            // A subtle background pulse that breathes independently
+            // Ambient Glow
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [
-                            mainColor.opacity(0.2),
-                            secondaryColor.opacity(0.1),
-                            .clear
-                        ],
+                        colors: [mainColor.opacity(0.2), .clear],
                         center: .center,
                         startRadius: 1,
                         endRadius: 300
@@ -33,9 +116,9 @@ struct BloomView: View {
                 .opacity(isBlooming ? 0.6 : 0.3)
                 .animation(.easeInOut(duration: 6).repeatForever(autoreverses: true), value: isBlooming)
             
-            // MARK: - Flower Composition
+            // Flower Layers
             ZStack {
-                // Layer 1: Outer/Base petals (Larger, darker, slower)
+                // Layer 1
                 FlowerLayer(
                     petalCount: 12,
                     radius: isBlooming ? 120 : 40,
@@ -46,7 +129,7 @@ struct BloomView: View {
                 .opacity(0.5)
                 .rotationEffect(.degrees(isBlooming ? 30 : -30))
                 
-                // Layer 2: Mid petals (Vibrant, main definition)
+                // Layer 2
                 FlowerLayer(
                     petalCount: 8,
                     radius: isBlooming ? 90 : 30,
@@ -54,10 +137,10 @@ struct BloomView: View {
                     scale: isBlooming ? 1.0 : 0.6,
                     rotationSpeed: -15
                 )
-                .blendMode(.plusLighter) // Additive blend for "glow"
+                .blendMode(.plusLighter)
                 .rotationEffect(.degrees(isBlooming ? -60 : 0))
                 
-                // Layer 3: Inner Core (Brightest, fastest)
+                // Layer 3
                 FlowerLayer(
                     petalCount: 6,
                     radius: isBlooming ? 50 : 15,
@@ -68,7 +151,7 @@ struct BloomView: View {
                 .blendMode(.plusLighter)
                 .rotationEffect(.degrees(isBlooming ? 90 : 0))
                 
-                // Center "Pistil" glow
+                // Pistil
                 Circle()
                     .fill(Color.white.opacity(isBlooming ? 0.8 : 0.4))
                     .frame(width: 20, height: 20)
@@ -77,20 +160,17 @@ struct BloomView: View {
             }
             .animation(.easeInOut(duration: 5).repeatForever(autoreverses: true), value: isBlooming)
         }
-        .onAppear {
-            isBlooming = true
-        }
     }
 }
 
-// MARK: - Subviews
+// MARK: - Subviews & Shapes (Unchanged)
 
 struct FlowerLayer: View {
     let petalCount: Int
     let radius: CGFloat
     let color: Color
     let scale: CGFloat
-    let rotationSpeed: Double // Just a seed for animation variance
+    let rotationSpeed: Double
     
     var body: some View {
         ZStack {
@@ -99,22 +179,18 @@ struct FlowerLayer: View {
                     .fill(
                         LinearGradient(
                             colors: [color.opacity(0.8), color.opacity(0.1)],
-                            startPoint: .bottom, // Base of petal
-                            endPoint: .top       // Tip of petal
+                            startPoint: .bottom,
+                            endPoint: .top
                         )
                     )
-                    .frame(width: 80, height: 120) // Base size of a petal
-                    .scaleEffect(x: scale, y: scale, anchor: .bottom) // Scale from center
-                    // 1. Offset to radius (Move OUTWARD)
+                    .frame(width: 80, height: 120)
+                    .scaleEffect(x: scale, y: scale, anchor: .bottom)
                     .offset(y: -radius)
-                    // 2. Rotate to position in circle
                     .rotationEffect(.degrees(Double(index) / Double(petalCount) * 360))
             }
         }
     }
 }
-
-// MARK: - Shapes
 
 struct PetalShape: Shape {
     func path(in rect: CGRect) -> Path {
@@ -122,22 +198,16 @@ struct PetalShape: Shape {
         let width = rect.width
         let height = rect.height
         
-        // Drawing a teardrop/petal shape
-        // Start at bottom center (the anchor point for the flower center)
         path.move(to: CGPoint(x: width / 2, y: height))
-        
-        // Curve up to the left
         path.addCurve(
-            to: CGPoint(x: width / 2, y: 0), // Top tip
-            control1: CGPoint(x: 0, y: height * 0.7), // Bulge out
-            control2: CGPoint(x: width * 0.2, y: height * 0.2) // Taper in
+            to: CGPoint(x: width / 2, y: 0),
+            control1: CGPoint(x: 0, y: height * 0.7),
+            control2: CGPoint(x: width * 0.2, y: height * 0.2)
         )
-        
-        // Curve back down to the right
         path.addCurve(
-            to: CGPoint(x: width / 2, y: height), // Back to bottom center
-            control1: CGPoint(x: width * 0.8, y: height * 0.2), // Taper out
-            control2: CGPoint(x: width, y: height * 0.7) // Bulge in
+            to: CGPoint(x: width / 2, y: height),
+            control1: CGPoint(x: width * 0.8, y: height * 0.2),
+            control2: CGPoint(x: width, y: height * 0.7)
         )
         
         return path
