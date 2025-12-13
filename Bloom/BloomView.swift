@@ -7,9 +7,19 @@ struct BloomView: View {
     
     @State private var isBlooming = false
     @State private var userTouches: [TouchPoint] = []
-    @State private var matchProgress: CGFloat = 0.0
+    @State private var isProcessingCompletion = false // Lock to prevent double-triggering
     
-    private let tolerance: CGFloat = 40.0 
+    // Course Management
+    @State private var currentStepIndex: Int = 0
+    @State private var steps: [CourseStep] = []
+    
+    // Derived state for smoother updates
+    private var currentPattern: GesturePattern {
+        if steps.isEmpty { return .dualTouch(span: targetSpan, angle: 0) }
+        return steps[currentStepIndex].pattern
+    }
+    
+    private let tolerance: CGFloat = 40.0
     
     var body: some View {
         GeometryReader { geometry in
@@ -18,22 +28,25 @@ struct BloomView: View {
                 BloomParticles()
                     .allowsHitTesting(false)
                 
-               FlowerView(isBlooming: isBlooming)
+                FlowerView(isBlooming: isBlooming)
                     .scaleEffect(isBlooming ? 1.0 : 0.5)
                     .animation(.spring(response: 0.6, dampingFraction: 0.7), value: isBlooming)
                 
+                // Dynamic Targets based on current pattern
                 ZStack {
-                    // Safe span calculation for display
-                    let maxAllowedSpan = geometry.size.width - 100
-                    let actualSpan = min(targetSpan, maxAllowedSpan)
-                    
-                    // Left Target (Thumb?)
-                    TargetRing(isMatched: isLeftMatched)
-                        .offset(x: -actualSpan / 2)
-                    
-                    // Right Target (Pinky?)
-                    TargetRing(isMatched: isRightMatched)
-                        .offset(x: actualSpan / 2)
+                    // We render a target for each point in the pattern
+                    let targets = currentPattern.getTargets()
+                    ForEach(0..<targets.count, id: \.self) { index in
+                        let point = targets[index]
+                        // Clamp checking logic should be in checkGameState, 
+                        // but here we just render relative to center.
+                        // We might need to clamp "display" position if it's too wide, 
+                        // but getTargets returns relative coordinates.
+                        
+                        TargetRing(isMatched: isBlooming) // Simplified visual feedback
+                            .offset(x: point.x, y: point.y)
+                            .position(x: geometry.size.width/2, y: geometry.size.height/2) // Center the group
+                    }
                 }
                 
                 TouchInputView { touches in
@@ -58,55 +71,132 @@ struct BloomView: View {
                 }
                 .zIndex(20)
                 
+                // Optional: Course Progress Indicator
+                VStack {
+                    Spacer()
+                    Text(currentPattern.name)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.5))
+                        .padding(.bottom, 20)
+                }
+                .allowsHitTesting(false)
+            }
+            .onAppear {
+                generateCourse(in: geometry.size)
             }
         }
     }
     
+    private func generateCourse(in size: CGSize) {
+        // Constrain span to fit the smaller screen dimension with padding
+        let maxDimension = min(size.width, size.height) - 100
+        let baseSpan = min(targetSpan, maxDimension)
+        
+        var newSteps: [CourseStep] = []
+        let count = 12 // A good length for a session
+        
+        for i in 0..<count {
+            let angle: CGFloat
+            let spanFactor: CGFloat
+            
+            if i == 0 {
+                // First step: Standard horizontal
+                angle = 0
+                spanFactor = 1.0
+            } else {
+                // Random variations
+                // Full 360 degree rotation potential
+                angle = CGFloat.random(in: 0...(2 * .pi))
+                
+                // Vary length between 70% and 110% of base
+                // Ensure we don't exceed bounds even with 1.1x
+                spanFactor = CGFloat.random(in: 0.7...1.1)
+            }
+            
+            // Calculate final span, clamped to safe area
+            let rawSpan = baseSpan * spanFactor
+            let finalSpan = min(rawSpan, maxDimension)
+            
+            newSteps.append(CourseStep(pattern: .dualTouch(span: finalSpan, angle: angle)))
+        }
+        
+        self.steps = newSteps
+    }
+    
     private func checkGameState(in size: CGSize) {
-        // We need at least 2 touches
-        guard userTouches.count >= 2 else {
-            withAnimation { isBlooming = false }
+        // Guard: Don't check inputs if we are already handling a success
+        guard !isProcessingCompletion else { return }
+        
+        let targets = currentPattern.getTargets()
+        
+        guard userTouches.count >= targets.count else {
+            if isBlooming {
+                withAnimation { isBlooming = false }
+            }
             return
         }
         
-        // Simple logic: Do ANY 2 touches fall within the target zones?
-        // We convert touches to view-relative coordinates in TouchInputView.
-        // But wait, TouchInputView returns coordinates relative to itself (Fullscreen).
-        // Our targets are offset from center (0,0) in a ZStack.
-        // We need to normalize coordinates.
-        
-        // Screen center
         let center = CGPoint(x: size.width / 2, y: size.height / 2)
         
-        // Clamp span to fit screen width with padding
-        let maxAllowedSpan = size.width - 100 // 50pt padding on each side
-        let actualSpan = min(targetSpan, maxAllowedSpan)
-        
-        // Target positions in screen space
-        let leftTarget = CGPoint(x: center.x - actualSpan/2, y: center.y)
-        let rightTarget = CGPoint(x: center.x + actualSpan/2, y: center.y)
-        
-        var leftHit = false
-        var rightHit = false
-        
-        for touch in userTouches {
-            if distance(touch.location, leftTarget) < tolerance { leftHit = true }
-            if distance(touch.location, rightTarget) < tolerance { rightHit = true }
+        let absoluteTargets = targets.map { point -> CGPoint in
+            return CGPoint(x: center.x + point.x, y: center.y + point.y)
         }
         
-        let success = leftHit && rightHit
+        let allTargetsMatched = absoluteTargets.allSatisfy { targetPoint in
+            userTouches.contains { touch in
+                distance(touch.location, targetPoint) < tolerance
+            }
+        }
+        
+        if allTargetsMatched {
+            if !isBlooming {
+                startStepCompletion()
+            }
+        } else {
+            if isBlooming {
+                withAnimation { isBlooming = false }
+            }
+        }
+    }
+    
+    private func startStepCompletion() {
+        isProcessingCompletion = true
+        
+        // 1. Bloom Feedback
         withAnimation(.easeInOut(duration: 0.5)) {
-            isBlooming = success
+            isBlooming = true
+        }
+        
+        // 2. Hold Duration
+        let duration = steps[currentStepIndex].holdDuration
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+            // 3. Reset Bloom
+            withAnimation {
+                isBlooming = false
+            }
+            
+            // 4. Advance Step Immediately
+            // Changing the step here ensures the user's current finger position
+            // (which matched the OLD step) won't accidentally match the NEW step
+            // in the next frame, unless they are extremely unlucky and the targets overlap perfectly.
+            if currentStepIndex < steps.count - 1 {
+                currentStepIndex += 1
+            } else {
+                // Loop course
+                generateCourse(in: UIScreen.main.bounds.size) // Regenerate for variety
+                currentStepIndex = 0
+            }
+            
+            // 5. Unlock Input after a short transition
+            // This forces a momentary pause where no matches occur, preventing "instant" chaining.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                isProcessingCompletion = false
+            }
         }
     }
     
-    private var isLeftMatched: Bool {
-        return isBlooming
-    }
-    
-    private var isRightMatched: Bool {
-        return isBlooming
-    }
+    // Removed old completeStep() in favor of startStepCompletion()
     
     private func distance(_ p1: CGPoint, _ p2: CGPoint) -> CGFloat {
         return hypot(p1.x - p2.x, p1.y - p2.y)
