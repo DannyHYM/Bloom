@@ -11,15 +11,12 @@ struct BloomView: View {
     @State private var flowerHue: Angle = .zero
     @State private var containerSize: CGSize = .zero
     
-    // Flower variation state
     @State private var flowerOffset: CGSize = .zero
     @State private var flowerIdleScale: CGFloat = 0.5
     
-    // Course Management
     @State private var currentStepIndex: Int = 0
     @State private var steps: [CourseStep] = []
     
-    // Derived state for smoother updates
     private var currentPattern: GesturePattern {
         if steps.isEmpty { return .dualTouch(span: targetSpan, angle: 0) }
         return steps[currentStepIndex].pattern
@@ -42,17 +39,10 @@ struct BloomView: View {
                     .animation(.spring(response: 0.6, dampingFraction: 0.7), value: isBlooming)
                     .animation(.easeInOut(duration: 1.0), value: flowerIdleScale)
                 
-                // Dynamic Targets based on current pattern
                 ZStack {
-                    // We render a target for each point in the pattern
                     let targets = currentPattern.getTargets()
                     ForEach(0..<targets.count, id: \.self) { index in
                         let point = targets[index]
-                        // Clamp checking logic should be in checkGameState, 
-                        // but here we just render relative to center.
-                        // We might need to clamp "display" position if it's too wide, 
-                        // but getTargets returns relative coordinates.
-                        
                         TargetRing(isMatched: isBlooming) // Simplified visual feedback
                             .offset(x: point.x, y: point.y)
                             .position(x: geometry.size.width/2, y: geometry.size.height/2) // Center the group
@@ -64,7 +54,9 @@ struct BloomView: View {
                     checkGameState(in: geometry.size)
                 }
                 
-                // Recalibrate Button (Top Right)
+                TouchParticleOverlay(touches: userTouches)
+                    .allowsHitTesting(false)
+                
                 VStack {
                     HStack {
                         Spacer()
