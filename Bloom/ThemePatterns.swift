@@ -210,7 +210,8 @@ struct AnimatedNebulaPattern: View {
         }
     }
 }
-import SwiftUI
+
+// MARK: - Static Patterns (Used for Menu Cards)
 
 struct GenerativePatternView: View {
     let theme: CourseTheme
@@ -241,8 +242,6 @@ struct GenerativePatternView: View {
         }
     }
 }
-
-// MARK: - Theme Patterns
 
 struct SunrisePattern: View {
     let colors: [Color]
