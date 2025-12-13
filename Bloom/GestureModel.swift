@@ -2,40 +2,46 @@ import Foundation
 import CoreGraphics
 
 enum GesturePattern: Equatable {
-    case dualTouch(span: CGFloat, angle: CGFloat) // Added angle parameter (in radians)
+    case singleTouch(radius: CGFloat, angle: CGFloat)
+    case dualTouch(span: CGFloat, angle: CGFloat)
+    case triTouch(radius: CGFloat, angle: CGFloat)
+    case quadTouch(radius: CGFloat, angle: CGFloat)
     
     // Helper to get target points relative to center (0,0)
     func getTargets() -> [CGPoint] {
         switch self {
+        case .singleTouch(let radius, let angle):
+            return [
+                CGPoint(x: radius * cos(angle), y: radius * sin(angle))
+            ]
+            
         case .dualTouch(let span, let angle):
-            // Calculate rotated points
-            // Start with horizontal points: (-span/2, 0) and (span/2, 0)
-            // Rotate them by 'angle'
             let halfSpan = span / 2
+            return [
+                CGPoint(x: -halfSpan * cos(angle), y: -halfSpan * sin(angle)),
+                CGPoint(x: halfSpan * cos(angle), y: halfSpan * sin(angle))
+            ]
             
-            // Point 1: Left (rotated)
-            let p1 = CGPoint(
-                x: -halfSpan * cos(angle),
-                y: -halfSpan * sin(angle)
-            )
+        case .triTouch(let radius, let angle):
+            return (0..<3).map { i in
+                let theta = angle + (CGFloat(i) * (2 * .pi / 3))
+                return CGPoint(x: radius * cos(theta), y: radius * sin(theta))
+            }
             
-            // Point 2: Right (rotated)
-            let p2 = CGPoint(
-                x: halfSpan * cos(angle),
-                y: halfSpan * sin(angle)
-            )
-            
-            return [p1, p2]
+        case .quadTouch(let radius, let angle):
+            return (0..<4).map { i in
+                let theta = angle + (CGFloat(i) * (2 * .pi / 4))
+                return CGPoint(x: radius * cos(theta), y: radius * sin(theta))
+            }
         }
     }
     
     var name: String {
         switch self {
-        case .dualTouch(_, let angle):
-            // Convert radians to degrees for display if needed
-            let degrees = Int(abs(angle * 180 / .pi))
-            if degrees == 0 { return "Dual Span" }
-            return "Dual Span (\(degrees)°)"
+        case .singleTouch: return "Focus Point"
+        case .dualTouch: return "Span"
+        case .triTouch: return "Triangle"
+        case .quadTouch: return "Square"
         }
     }
 }

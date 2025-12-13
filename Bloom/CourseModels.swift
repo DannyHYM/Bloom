@@ -21,7 +21,15 @@ struct Course: Identifiable {
     let title: String
     let subtitle: String
     let theme: CourseTheme
+    let strategy: CourseStrategy
     let defaultSets: Int
+}
+
+enum CourseStrategy {
+    case gentle   // Morning Awakening: Small angles, consistent span
+    case rhythmic // Deep Focus: Repeating patterns
+    case stretch  // Hand Yoga: Wide variations, diagonal angles
+    case chaotic  // Cosmic Flow: Full random
 }
 
 enum CourseTheme {
@@ -33,10 +41,10 @@ enum CourseTheme {
 
 extension Course {
     static let allCourses = [
-        Course(title: "Morning Awakening", subtitle: "Gentle stretches to start your day", theme: .sunrise, defaultSets: 8),
-        Course(title: "Deep Focus", subtitle: "Rhythmic patterns for concentration", theme: .deepOcean, defaultSets: 12),
-        Course(title: "Hand Yoga", subtitle: "Flexibility and dexterity training", theme: .forest, defaultSets: 10),
-        Course(title: "Cosmic Flow", subtitle: "Explore complex generative patterns", theme: .nebula, defaultSets: 15)
+        Course(title: "Morning Awakening", subtitle: "Gentle stretches to start your day", theme: .sunrise, strategy: .gentle, defaultSets: 8),
+        Course(title: "Deep Focus", subtitle: "Rhythmic patterns for concentration", theme: .deepOcean, strategy: .rhythmic, defaultSets: 12),
+        Course(title: "Hand Yoga", subtitle: "Flexibility and dexterity training", theme: .forest, strategy: .stretch, defaultSets: 10),
+        Course(title: "Cosmic Flow", subtitle: "Explore complex generative patterns", theme: .nebula, strategy: .chaotic, defaultSets: 15)
     ]
 }
 

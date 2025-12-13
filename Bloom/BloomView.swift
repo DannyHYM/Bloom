@@ -205,33 +205,69 @@ struct BloomView: View {
         // Constrain span to fit the smaller screen dimension with padding
         let maxDimension = min(size.width, size.height) - 100
         let baseSpan = min(targetSpan, maxDimension)
+        let baseRadius = baseSpan / 2
         
         var newSteps: [CourseStep] = []
         let count = Int(totalSets)
+        let strategy = course?.strategy ?? .chaotic // Default to chaotic for free play
         
         for i in 0..<count {
-            let angle: CGFloat
-            let spanFactor: CGFloat
-            
-            if i == 0 {
-                // First step: Standard horizontal
-                angle = 0
-                spanFactor = 1.0
-            } else {
-                // Random variations
-                // Full 360 degree rotation potential
-                angle = CGFloat.random(in: 0...(2 * .pi))
+            switch strategy {
+            case .gentle: // Morning Awakening
+                // Start with single touches to wake up fingers
+                if i < count / 3 {
+                    // Single touches moving in a circle
+                    let angle = (CGFloat(i) / CGFloat(count/3)) * 2 * .pi
+                    newSteps.append(CourseStep(pattern: .singleTouch(radius: baseRadius * 0.8, angle: angle)))
+                } else {
+                    // Then gentle dual spans
+                    let angle = (i % 2 == 0) ? 0 : CGFloat.pi / 2
+                    let tilt = CGFloat.random(in: -0.1...0.1)
+                    newSteps.append(CourseStep(pattern: .dualTouch(span: baseSpan * 0.9, angle: angle + tilt)))
+                }
                 
-                // Vary length between 70% and 110% of base
-                // Ensure we don't exceed bounds even with 1.1x
-                spanFactor = CGFloat.random(in: 0.7...1.1)
+            case .rhythmic: // Deep Focus
+                // Structured patterns with 4-way symmetry
+                let step = i % 4
+                let angle = CGFloat(step) * (.pi / 4)
+                
+                if i % 3 == 0 {
+                    // Every 3rd step is a square to check full hand engagement
+                    newSteps.append(CourseStep(pattern: .quadTouch(radius: baseRadius * 0.8, angle: angle)))
+                } else {
+                    // Cross patterns
+                    newSteps.append(CourseStep(pattern: .dualTouch(span: baseSpan, angle: angle)))
+                }
+                
+            case .stretch: // Hand Yoga
+                // Complex multi-finger stretches
+                let angle = CGFloat(i) * (.pi / 3)
+                
+                if i % 2 == 0 {
+                    // Wide Triangle Stretch
+                    newSteps.append(CourseStep(pattern: .triTouch(radius: baseRadius, angle: angle)))
+                } else {
+                    // Wide Dual Span
+                    newSteps.append(CourseStep(pattern: .dualTouch(span: baseSpan * 1.1, angle: angle)))
+                }
+                
+            case .chaotic: // Cosmic Flow / Free Play
+                // Full random mix
+                let type = Int.random(in: 0...3)
+                let angle = CGFloat.random(in: 0...(2 * .pi))
+                let scale = CGFloat.random(in: 0.7...1.0)
+                
+                switch type {
+                case 0: // Single
+                    newSteps.append(CourseStep(pattern: .singleTouch(radius: baseRadius * scale, angle: angle)))
+                case 1: // Dual
+                    newSteps.append(CourseStep(pattern: .dualTouch(span: baseSpan * scale, angle: angle)))
+                case 2: // Tri
+                    newSteps.append(CourseStep(pattern: .triTouch(radius: baseRadius * scale, angle: angle)))
+                default: // Quad
+                    newSteps.append(CourseStep(pattern: .quadTouch(radius: baseRadius * scale, angle: angle)))
+                }
             }
-            
-            // Calculate final span, clamped to safe area
-            let rawSpan = baseSpan * spanFactor
-            let finalSpan = min(rawSpan, maxDimension)
-            
-            newSteps.append(CourseStep(pattern: .dualTouch(span: finalSpan, angle: angle)))
         }
         
         self.steps = newSteps
