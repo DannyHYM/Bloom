@@ -8,6 +8,12 @@ struct BloomView: View {
     @State private var isBlooming = false
     @State private var userTouches: [TouchPoint] = []
     @State private var isProcessingCompletion = false // Lock to prevent double-triggering
+    @State private var flowerHue: Angle = .zero
+    @State private var containerSize: CGSize = .zero
+    
+    // Flower variation state
+    @State private var flowerOffset: CGSize = .zero
+    @State private var flowerIdleScale: CGFloat = 0.5
     
     // Course Management
     @State private var currentStepIndex: Int = 0
@@ -29,8 +35,12 @@ struct BloomView: View {
                     .allowsHitTesting(false)
                 
                 FlowerView(isBlooming: isBlooming)
-                    .scaleEffect(isBlooming ? 1.0 : 0.5)
+                    .scaleEffect(isBlooming ? 1.0 : flowerIdleScale) // Dynamic idle scale
+                    .offset(flowerOffset) // Dynamic position
+                    .hueRotation(flowerHue)
+                    .animation(.spring(response: 0.8, dampingFraction: 0.7), value: flowerOffset)
                     .animation(.spring(response: 0.6, dampingFraction: 0.7), value: isBlooming)
+                    .animation(.easeInOut(duration: 1.0), value: flowerIdleScale)
                 
                 // Dynamic Targets based on current pattern
                 ZStack {
@@ -82,7 +92,11 @@ struct BloomView: View {
                 .allowsHitTesting(false)
             }
             .onAppear {
+                containerSize = geometry.size
                 generateCourse(in: geometry.size)
+            }
+            .onChange(of: geometry.size) { _, newSize in
+                containerSize = newSize
             }
         }
     }
@@ -184,8 +198,23 @@ struct BloomView: View {
                 currentStepIndex += 1
             } else {
                 // Loop course
-                generateCourse(in: UIScreen.main.bounds.size) // Regenerate for variety
+                generateCourse(in: containerSize) // Regenerate for variety
                 currentStepIndex = 0
+            }
+            
+            // Shift flower color & appearance for next step
+            withAnimation(.easeInOut(duration: 1.0)) {
+                flowerHue += .degrees(Double.random(in: 60...180))
+                
+                // Randomize idle scale (0.4 to 0.7)
+                flowerIdleScale = CGFloat.random(in: 0.4...0.7)
+                
+                // Randomize position slightly (within +/- 30 points)
+                // This keeps it mostly centered but feels "alive"
+                flowerOffset = CGSize(
+                    width: CGFloat.random(in: -30...30),
+                    height: CGFloat.random(in: -30...30)
+                )
             }
             
             // 5. Unlock Input after a short transition
