@@ -3,6 +3,7 @@ import SwiftUI
 // MARK: - Game Container
 struct BloomView: View {
     var targetSpan: CGFloat = 200 // Default, passed from calibration
+    var theme: CourseTheme? = nil // Optional theme to override default black
     var onRecalibrate: () -> Void = {} // Callback to trigger recalibration
     
     @State private var isBlooming = false
@@ -27,7 +28,14 @@ struct BloomView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                Color.black.ignoresSafeArea()
+                // Background
+                if let theme = theme {
+                    CourseBackgroundView(theme: theme)
+                        .opacity(0.8) // Slight dim to ensure game elements pop
+                } else {
+                    Color.black.ignoresSafeArea()
+                }
+                
                 BloomParticles()
                     .allowsHitTesting(false)
                 

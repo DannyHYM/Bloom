@@ -48,11 +48,15 @@ struct ContentView: View {
                 .transition(AnyTransition.opacity)
                 
             case .gardening(let course):
-                BloomView(targetSpan: handSpan, onRecalibrate: {
-                    withAnimation(.easeInOut(duration: 0.5)) {
-                        self.appState = .home // Go back home instead of recalibrate directly
+                BloomView(
+                    targetSpan: handSpan,
+                    theme: course?.theme,
+                    onRecalibrate: {
+                        withAnimation(.easeInOut(duration: 0.5)) {
+                            self.appState = .home // Go back home instead of recalibrate directly
+                        }
                     }
-                })
+                )
                 // We could pass 'course' to BloomView to change theme/difficulty
                 .transition(AnyTransition.opacity)
             }
