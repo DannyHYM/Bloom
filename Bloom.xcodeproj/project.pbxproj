@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		66637A222EEE16CE0098E836 /* Vortex in Frameworks */ = {isa = PBXBuildFile; productRef = 66637A212EEE16CE0098E836 /* Vortex */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		66D1EF1D2EE28888007CC70A /* Bloom.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bloom.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				66637A222EEE16CE0098E836 /* Vortex in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = Bloom;
 			packageProductDependencies = (
+				66637A212EEE16CE0098E836 /* Vortex */,
 			);
 			productName = Bloom;
 			productReference = 66D1EF1D2EE28888007CC70A /* Bloom.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = 66D1EF142EE28888007CC70A;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				66637A202EEE16CE0098E836 /* XCRemoteSwiftPackageReference "Vortex" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 66D1EF1E2EE28888007CC70A /* Products */;
 			projectDirPath = "";
@@ -332,6 +341,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		66637A202EEE16CE0098E836 /* XCRemoteSwiftPackageReference "Vortex" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/twostraws/Vortex.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.4;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		66637A212EEE16CE0098E836 /* Vortex */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66637A202EEE16CE0098E836 /* XCRemoteSwiftPackageReference "Vortex" */;
+			productName = Vortex;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 66D1EF152EE28888007CC70A /* Project object */;
 }

@@ -21,6 +21,7 @@ struct Course: Identifiable {
     let title: String
     let subtitle: String
     let theme: CourseTheme
+    let defaultSets: Int
 }
 
 enum CourseTheme {
@@ -32,10 +33,10 @@ enum CourseTheme {
 
 extension Course {
     static let allCourses = [
-        Course(title: "Morning Awakening", subtitle: "Gentle stretches to start your day", theme: .sunrise),
-        Course(title: "Deep Focus", subtitle: "Rhythmic patterns for concentration", theme: .deepOcean),
-        Course(title: "Hand Yoga", subtitle: "Flexibility and dexterity training", theme: .forest),
-        Course(title: "Cosmic Flow", subtitle: "Explore complex generative patterns", theme: .nebula)
+        Course(title: "Morning Awakening", subtitle: "Gentle stretches to start your day", theme: .sunrise, defaultSets: 8),
+        Course(title: "Deep Focus", subtitle: "Rhythmic patterns for concentration", theme: .deepOcean, defaultSets: 12),
+        Course(title: "Hand Yoga", subtitle: "Flexibility and dexterity training", theme: .forest, defaultSets: 10),
+        Course(title: "Cosmic Flow", subtitle: "Explore complex generative patterns", theme: .nebula, defaultSets: 15)
     ]
 }
 

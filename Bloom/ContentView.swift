@@ -48,23 +48,41 @@ struct ContentView: View {
                 .transition(AnyTransition.opacity)
                 .onAppear { lockOrientation(allowAll: false) }
                 
-            case .gardening(let course):
-                BloomView(
-                    targetSpan: handSpan,
-                    theme: course?.theme,
-                    onRecalibrate: {
-                        lockOrientation(allowAll: false)
-                        withAnimation(.easeInOut(duration: 0.5)) {
-                            self.appState = .home // Go back home instead of recalibrate directly
-                        }
-                    }
-                )
-                // We could pass 'course' to BloomView to change theme/difficulty
-                .transition(AnyTransition.opacity)
-                .onAppear { lockOrientation(allowAll: true) }
+            case .gardening:
+                // This state is just a placeholder to trigger fullScreenCover now
+                Color.black.ignoresSafeArea()
             }
         }
         .preferredColorScheme(.dark)
+        .fullScreenCover(item:Binding<Course?>(
+            get: {
+                if case .gardening(let course) = appState {
+                    return course
+                }
+                return nil
+            },
+            set: { (newValue: Course?) in
+                if newValue == nil {
+                    withAnimation(.easeInOut(duration: 0.5)) {
+                        self.appState = .home
+                    }
+                }
+            }
+        )) { (course: Course) in
+            BloomView(
+                targetSpan: handSpan,
+                course: course,
+                onRecalibrate: {
+                    lockOrientation(allowAll: false)
+                    withAnimation(.easeInOut(duration: 0.5)) {
+                        self.appState = .home
+                    }
+                }
+            )
+            .background(Color.black.ignoresSafeArea()) // Ensure solid background behind the glass
+            .onAppear { lockOrientation(allowAll: true) }
+            .onDisappear { lockOrientation(allowAll: false) }
+        }
     }
     
     func lockOrientation(allowAll: Bool) {

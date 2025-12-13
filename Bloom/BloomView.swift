@@ -1,10 +1,20 @@
 import SwiftUI
+import Vortex
 
-// MARK: - Game Container
 struct BloomView: View {
     var targetSpan: CGFloat = 200 // Default, passed from calibration
-    var theme: CourseTheme? = nil // Optional theme to override default black
+    var course: Course? = nil // Optional course object
     var onRecalibrate: () -> Void = {} // Callback to trigger recalibration
+    
+    // Game State
+    enum GamePhase {
+        case setup
+        case playing
+        case completed
+    }
+    
+    @State private var phase: GamePhase = .setup
+    @State private var totalSets: Double = 12
     
     @State private var isBlooming = false
     @State private var userTouches: [TouchPoint] = []
@@ -29,7 +39,7 @@ struct BloomView: View {
         GeometryReader { geometry in
             ZStack {
                 // Background
-                if let theme = theme {
+                if let theme = course?.theme {
                     CourseBackgroundView(theme: theme)
                         .opacity(0.2) // Heavily dimmed to ensure game elements pop
                 } else {
@@ -39,65 +49,149 @@ struct BloomView: View {
                 BloomParticles()
                     .allowsHitTesting(false)
                 
-                FlowerView(isBlooming: isBlooming)
-                    .scaleEffect(isBlooming ? 1.0 : flowerIdleScale) // Dynamic idle scale
-                    .offset(flowerOffset) // Dynamic position
-                    .hueRotation(flowerHue)
-                    .animation(.spring(response: 0.8, dampingFraction: 0.7), value: flowerOffset)
-                    .animation(.spring(response: 0.6, dampingFraction: 0.7), value: isBlooming)
-                    .animation(.easeInOut(duration: 1.0), value: flowerIdleScale)
-                
-                ZStack {
-                    let targets = currentPattern.getTargets()
-                    ForEach(0..<targets.count, id: \.self) { index in
-                        let point = targets[index]
-                        TargetRing(isMatched: isBlooming) // Simplified visual feedback
-                            .offset(x: point.x, y: point.y)
-                            .position(x: geometry.size.width/2, y: geometry.size.height/2) // Center the group
-                    }
-                }
-                
-                TouchInputView { touches in
-                    self.userTouches = touches
-                    checkGameState(in: geometry.size)
-                }
-                
-                TouchParticleOverlay(touches: userTouches)
-                    .allowsHitTesting(false)
-                
-                VStack {
-                    HStack {
-                        Spacer()
-                        Button(action: onRecalibrate) {
-                            Image(systemName: "xmark")
-                                .font(.title2)
-                                .foregroundStyle(.white.opacity(0.8))
-                                .padding(12)
-                                .background(.ultraThinMaterial, in: Circle())
+                switch phase {
+                case .setup:
+                    CourseSetupView(
+                        course: course,
+                        totalSets: $totalSets,
+                        onStart: {
+                            generateCourse(in: containerSize)
+                            withAnimation {
+                                phase = .playing
+                            }
+                        },
+                        onDismiss: onRecalibrate
+                    )
+                    .zIndex(30)
+                    
+                case .playing:
+                    gameplayLayer(geometry: geometry)
+                    
+                case .completed:
+                    // Completion state with confetti
+                    ZStack {
+                        // Confetti Layer
+                        VortexViewReader { proxy in
+                            VortexView(.confetti) {
+                                Circle()
+                                    .fill(.white)
+                                    .frame(width: 12)
+                                    .tag("circle")
+                                
+                                Rectangle()
+                                    .fill(.white)
+                                    .frame(width: 12, height: 12)
+                                    .tag("square")
+                            }
+                            .onAppear {
+                                proxy.burst()
+                            }
                         }
-                        .padding()
+                        .ignoresSafeArea()
+                        
+                        // UI Layer
+                        VStack(spacing: 24) {
+                            Spacer()
+                            
+                            Text("Session Complete")
+                                .font(.system(size: 40, weight: .bold)) // Larger, bolder title
+                                .foregroundStyle(.white)
+                                .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
+                            
+                            Text("Great job! You've completed your daily practice.")
+                                .font(.title3)
+                                .foregroundStyle(.white.opacity(0.9))
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                                .shadow(color: .black.opacity(0.3), radius: 5, x: 0, y: 2)
+                            
+                            Button(action: {
+                                onRecalibrate()
+                            }) {
+                                Text("Done")
+                                    .font(.headline)
+                                    .foregroundStyle(.black)
+                                    .frame(width: 200, height: 56)
+                                    .background(Capsule().fill(.white))
+                                    .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
+                            }
+                            .padding(.top, 40)
+                            
+                            Spacer()
+                        }
                     }
-                    Spacer()
+                    .background(Color.black.opacity(0.6)) // Slight overlay to dim background
+                    .transition(.opacity)
+                    .zIndex(30)
+                    .zIndex(30)
                 }
-                .zIndex(20)
-                
-                // Optional: Course Progress Indicator
-                VStack {
-                    Spacer()
-                    Text(currentPattern.name)
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.5))
-                        .padding(.bottom, 20)
-                }
-                .allowsHitTesting(false)
             }
             .onAppear {
                 containerSize = geometry.size
-                generateCourse(in: geometry.size)
+                if let defaultSets = course?.defaultSets {
+                    totalSets = Double(defaultSets)
+                }
+                // Don't generate course immediately, wait for setup
             }
             .onChange(of: geometry.size) { _, newSize in
                 containerSize = newSize
             }
+        }
+    }
+    
+    private func gameplayLayer(geometry: GeometryProxy) -> some View {
+        ZStack {
+            FlowerView(isBlooming: isBlooming)
+                .scaleEffect(isBlooming ? 1.0 : flowerIdleScale) // Dynamic idle scale
+                .offset(flowerOffset) // Dynamic position
+                .hueRotation(flowerHue)
+                .animation(.spring(response: 0.8, dampingFraction: 0.7), value: flowerOffset)
+                .animation(.spring(response: 0.6, dampingFraction: 0.7), value: isBlooming)
+                .animation(.easeInOut(duration: 1.0), value: flowerIdleScale)
+            
+            ZStack {
+                let targets = currentPattern.getTargets()
+                ForEach(0..<targets.count, id: \.self) { index in
+                    let point = targets[index]
+                    TargetRing(isMatched: isBlooming) // Simplified visual feedback
+                        .offset(x: point.x, y: point.y)
+                        .position(x: geometry.size.width/2, y: geometry.size.height/2) // Center the group
+                }
+            }
+            
+            TouchInputView { touches in
+                self.userTouches = touches
+                checkGameState(in: geometry.size)
+            }
+            
+            TouchParticleOverlay(touches: userTouches)
+                .allowsHitTesting(false)
+            
+            VStack {
+                HStack {
+                    Spacer()
+                    Button(action: onRecalibrate) {
+                        Image(systemName: "xmark")
+                            .font(.title2)
+                            .foregroundStyle(.white.opacity(0.8))
+                            .padding(12)
+                            .background(.ultraThinMaterial, in: Circle())
+                    }
+                    .padding()
+                }
+                Spacer()
+            }
+            .zIndex(20)
+            
+            // Optional: Course Progress Indicator
+            VStack {
+                Spacer()
+                Text("\(currentStepIndex + 1) / \(steps.count)")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.5))
+                    .padding(.bottom, 20)
+            }
+            .allowsHitTesting(false)
         }
     }
     
@@ -107,7 +201,7 @@ struct BloomView: View {
         let baseSpan = min(targetSpan, maxDimension)
         
         var newSteps: [CourseStep] = []
-        let count = 12 // A good length for a session
+        let count = Int(totalSets)
         
         for i in 0..<count {
             let angle: CGFloat
@@ -191,35 +285,32 @@ struct BloomView: View {
             }
             
             // 4. Advance Step Immediately
-            // Changing the step here ensures the user's current finger position
-            // (which matched the OLD step) won't accidentally match the NEW step
-            // in the next frame, unless they are extremely unlucky and the targets overlap perfectly.
             if currentStepIndex < steps.count - 1 {
                 currentStepIndex += 1
+                
+                // Shift flower color & appearance for next step
+                withAnimation(.easeInOut(duration: 1.0)) {
+                    flowerHue += .degrees(Double.random(in: 60...180))
+                    
+                    // Randomize idle scale (0.4 to 0.7)
+                    flowerIdleScale = CGFloat.random(in: 0.4...0.7)
+                    
+                    // Randomize position slightly (within +/- 30 points)
+                    flowerOffset = CGSize(
+                        width: CGFloat.random(in: -30...30),
+                        height: CGFloat.random(in: -30...30)
+                    )
+                }
+                
+                // 5. Unlock Input after a short transition
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    isProcessingCompletion = false
+                }
             } else {
-                // Loop course
-                generateCourse(in: containerSize) // Regenerate for variety
-                currentStepIndex = 0
-            }
-            
-            // Shift flower color & appearance for next step
-            withAnimation(.easeInOut(duration: 1.0)) {
-                flowerHue += .degrees(Double.random(in: 60...180))
-                
-                // Randomize idle scale (0.4 to 0.7)
-                flowerIdleScale = CGFloat.random(in: 0.4...0.7)
-                
-                // Randomize position slightly (within +/- 30 points)
-                // This keeps it mostly centered but feels "alive"
-                flowerOffset = CGSize(
-                    width: CGFloat.random(in: -30...30),
-                    height: CGFloat.random(in: -30...30)
-                )
-            }
-            
-            // 5. Unlock Input after a short transition
-            // This forces a momentary pause where no matches occur, preventing "instant" chaining.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                // Course Complete
+                withAnimation {
+                    phase = .completed
+                }
                 isProcessingCompletion = false
             }
         }
@@ -367,6 +458,78 @@ struct PetalShape: Shape {
         )
         
         return path
+    }
+}
+
+struct CourseSetupView: View {
+    let course: Course?
+    @Binding var totalSets: Double
+    var onStart: () -> Void
+    var onDismiss: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 30) {
+            HStack {
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark")
+                        .font(.title2)
+                        .foregroundStyle(.white.opacity(0.6))
+                        .padding()
+                        .background(Circle().fill(.ultraThinMaterial))
+                }
+                Spacer()
+            }
+            .padding(.horizontal)
+            
+            Spacer()
+            
+            VStack(spacing: 8) {
+                Text(course?.title ?? "Free Play")
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                
+                Text(course?.subtitle ?? "Relax and explore")
+                    .font(.body)
+                    .foregroundStyle(.white.opacity(0.7))
+                    .multilineTextAlignment(.center)
+            }
+            
+            VStack(alignment: .leading, spacing: 10) {
+                Text("DURATION")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.white.opacity(0.5))
+                
+                HStack {
+                    Text("\(Int(totalSets)) Sets")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white)
+                    
+                    Spacer()
+                }
+                
+                Slider(value: $totalSets, in: 5...30, step: 1)
+                    .tint(.white)
+            }
+            .padding(24)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .padding(.horizontal)
+            
+            Button(action: onStart) {
+                Text("Begin Practice")
+                    .font(.headline)
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 20)
+        }
     }
 }
 
