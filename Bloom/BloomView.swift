@@ -31,7 +31,7 @@ struct BloomView: View {
                 // Background
                 if let theme = theme {
                     CourseBackgroundView(theme: theme)
-                        .opacity(0.8) // Slight dim to ensure game elements pop
+                        .opacity(0.2) // Heavily dimmed to ensure game elements pop
                 } else {
                     Color.black.ignoresSafeArea()
                 }
