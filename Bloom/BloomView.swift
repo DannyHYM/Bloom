@@ -1,10 +1,13 @@
 import SwiftUI
 import Vortex
+import SwiftData
 
 struct BloomView: View {
     var targetSpan: CGFloat = 200 // Default, passed from calibration
     var course: Course? = nil // Optional course object
     var onRecalibrate: () -> Void = {} // Callback to trigger recalibration
+    
+    @Environment(\.modelContext) private var modelContext
     
     // Game State
     enum GamePhase {
@@ -311,6 +314,12 @@ struct BloomView: View {
                 }
             } else {
                 // Course Complete
+                let log = PracticeLog(
+                    courseTitle: course?.title ?? "Free Play",
+                    setsCompleted: Int(totalSets)
+                )
+                modelContext.insert(log)
+                
                 withAnimation {
                     phase = .completed
                 }

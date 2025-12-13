@@ -14,7 +14,7 @@ struct BloomApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: UserProfile.self)
+        .modelContainer(for: [UserProfile.self, PracticeLog.self])
     }
 }
 

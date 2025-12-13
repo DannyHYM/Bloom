@@ -151,9 +151,15 @@ struct HomeView: View {
                                 .frame(width: 48, height: 48)
                                 .shadow(color: currentUser.color.opacity(0.5), radius: 8, x: 0, y: 4)
                             
-                            Text(currentUser.initials)
-                                .font(.system(size: 18, weight: .bold, design: .rounded))
-                                .foregroundStyle(.white)
+                            if currentUser.initials.isEmpty {
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(.white)
+                            } else {
+                                Text(currentUser.initials)
+                                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.white)
+                            }
                         }
                     }
                 }
@@ -186,6 +192,9 @@ struct HomeView: View {
                     .padding()
                     .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.05)))
                 }
+                
+                // Progress Heatmap
+                HeatMapChart()
                 
                 // Course List
                 LazyVStack(spacing: 24) {

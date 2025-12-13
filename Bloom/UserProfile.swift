@@ -17,7 +17,7 @@ class UserProfile {
         let first = firstName.first.map { String($0) } ?? ""
         let last = lastName.first.map { String($0) } ?? ""
         let result = (first + last).uppercased()
-        return result.isEmpty ? "?" : result
+        return result
     }
     
     var color: Color {
