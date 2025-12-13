@@ -8,12 +8,13 @@
 import SwiftUI
 
 enum AppState {
+    case home
     case calibration
-    case gardening // The main loop
+    case gardening(Course?) // Pass selected course (optional for now)
 }
 
 struct ContentView: View {
-    @State private var appState: AppState = .calibration
+    @State private var appState: AppState = .home
     @State private var handSpan: CGFloat = 200.0 // Default/Fallback
     
     var body: some View {
@@ -22,23 +23,38 @@ struct ContentView: View {
             Color.black.ignoresSafeArea()
             
             switch appState {
+            case .home:
+                HomeView(
+                    onSelectCourse: { course in
+                        withAnimation {
+                            self.appState = .gardening(course)
+                        }
+                    },
+                    onCalibrate: {
+                        withAnimation {
+                            self.appState = .calibration
+                        }
+                    }
+                )
+                .transition(AnyTransition.move(edge: .leading))
+                
             case .calibration:
-                CalibrationView(onCalibrated: { _ in
-                    // Demo Mode: Ignore actual calibration, use fixed value
-                    self.handSpan = 200.0
-                    withAnimation(.easeInOut(duration: 1.0)) {
-                        self.appState = .gardening
+                CalibrationView(onCalibrated: { span in
+                    self.handSpan = span
+                    withAnimation(.easeInOut(duration: 0.5)) {
+                        self.appState = .home // Return home after calibration
                     }
                 })
-                .transition(.opacity)
+                .transition(AnyTransition.opacity)
                 
-            case .gardening:
+            case .gardening(let course):
                 BloomView(targetSpan: handSpan, onRecalibrate: {
                     withAnimation(.easeInOut(duration: 0.5)) {
-                        self.appState = .calibration
+                        self.appState = .home // Go back home instead of recalibrate directly
                     }
                 })
-                .transition(.opacity)
+                // We could pass 'course' to BloomView to change theme/difficulty
+                .transition(AnyTransition.opacity)
             }
         }
         .preferredColorScheme(.dark)

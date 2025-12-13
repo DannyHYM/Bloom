@@ -61,7 +61,7 @@ struct BloomView: View {
                     HStack {
                         Spacer()
                         Button(action: onRecalibrate) {
-                            Image(systemName: "hand.raised.fingers.spread")
+                            Image(systemName: "xmark.circle.fill")
                                 .font(.title2)
                                 .foregroundStyle(.white.opacity(0.8))
                                 .padding(12)
