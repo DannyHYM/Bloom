@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -13,6 +14,7 @@ struct BloomApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: UserProfile.self)
     }
 }
 

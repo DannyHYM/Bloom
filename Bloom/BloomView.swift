@@ -84,7 +84,10 @@ struct BloomView: View {
                                     .tag("square")
                             }
                             .onAppear {
-                                proxy.burst()
+                                // Add a small delay to ensure the proxy is ready and the view is fully active
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                    proxy.burst()
+                                }
                             }
                         }
                         .ignoresSafeArea()

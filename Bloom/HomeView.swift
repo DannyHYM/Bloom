@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 // MARK: - Extensions & Helpers (Inlined for reliability)
 
@@ -110,21 +111,51 @@ struct HomeView: View {
     var onSelectCourse: (Course) -> Void
     var onCalibrate: () -> Void
     
+    @Environment(\.modelContext) private var modelContext
+    @Query private var profiles: [UserProfile]
+    @State private var showingProfileSheet = false
+    
+    private var currentUser: UserProfile {
+        if let profile = profiles.first {
+            return profile
+        } else {
+            return UserProfile() // Fallback
+        }
+    }
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 
                 // Header
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Welcome Back")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.6))
-                        .textCase(.uppercase)
-                        .kerning(1)
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Welcome Back")
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.6))
+                            .textCase(.uppercase)
+                            .kerning(1)
+                        
+                        Text(currentUser.firstName.isEmpty ? "Daily Practice" : "Hi, \(currentUser.firstName)")
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
                     
-                    Text("Daily Practice")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(.white)
+                    Spacer()
+                    
+                    // Avatar Button
+                    Button(action: { showingProfileSheet = true }) {
+                        ZStack {
+                            Circle()
+                                .fill(currentUser.color)
+                                .frame(width: 48, height: 48)
+                                .shadow(color: currentUser.color.opacity(0.5), radius: 8, x: 0, y: 4)
+                            
+                            Text(currentUser.initials)
+                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                .foregroundStyle(.white)
+                        }
+                    }
                 }
                 .padding(.top, 20)
                 .padding(.horizontal, 4)
@@ -169,6 +200,73 @@ struct HomeView: View {
             .padding(16)
         }
         .background(Color.black.ignoresSafeArea())
+        .onAppear {
+            if profiles.isEmpty {
+                let newProfile = UserProfile(avatarColorHex: randomColorHex())
+                modelContext.insert(newProfile)
+            }
+        }
+        .sheet(isPresented: $showingProfileSheet) {
+            ProfileEditView(profile: currentUser)
+        }
+    }
+    
+    private func randomColorHex() -> String {
+        let colors = [
+            "#FF5733", "#33FF57", "#3357FF", "#FF33F6", 
+            "#33FFF6", "#F6FF33", "#FF8C00", "#9932CC"
+        ]
+        return colors.randomElement() ?? "#CCCCCC"
+    }
+}
+
+struct ProfileEditView: View {
+    @Bindable var profile: UserProfile
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(header: Text("Personal Info")) {
+                    TextField("First Name", text: $profile.firstName)
+                    TextField("Last Name", text: $profile.lastName)
+                }
+                
+                Section(header: Text("Avatar Color")) {
+                    HStack {
+                        Circle()
+                            .fill(profile.color)
+                            .frame(width: 40, height: 40)
+                        
+                        Spacer()
+                        
+                        Button("Randomize Color") {
+                            profile.avatarColorHex = randomColorHex()
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+            }
+            .navigationTitle("Edit Profile")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+    
+    private func randomColorHex() -> String {
+        let colors = [
+            "#FF5733", "#33FF57", "#3357FF", "#FF33F6", 
+            "#33FFF6", "#F6FF33", "#FF8C00", "#9932CC",
+            "#00FA9A", "#DC143C", "#1E90FF", "#FF1493"
+        ]
+        return colors.randomElement() ?? "#CCCCCC"
     }
 }
 
