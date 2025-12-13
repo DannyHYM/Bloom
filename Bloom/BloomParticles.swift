@@ -169,6 +169,9 @@ class TouchParticleScene: SKScene {
         emitter.particleLifetime = 0.6
         emitter.particleLifetimeRange = 0.2
         
+        // Emitting Area
+        emitter.particlePositionRange = CGVector(dx: 40, dy: 40) // Increased emitting area
+        
         // Appearance
         emitter.particleScale = 0.4
         emitter.particleScaleRange = 0.2
