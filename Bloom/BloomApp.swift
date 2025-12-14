@@ -10,9 +10,12 @@ struct BloomApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     #endif
     
+    @State private var remoteManager = RemoteManager()
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(remoteManager)
         }
         .modelContainer(for: [UserProfile.self, PracticeLog.self])
     }

@@ -112,8 +112,12 @@ struct HomeView: View {
     var onCalibrate: () -> Void
     
     @Environment(\.modelContext) private var modelContext
+    @Environment(RemoteManager.self) private var remoteManager
     @Query private var profiles: [UserProfile]
+    @Query private var logs: [PracticeLog]
+    
     @State private var showingProfileSheet = false
+    @State private var showingTherapistSheet = false
     
     private var currentUser: UserProfile {
         if let profile = profiles.first {
@@ -142,6 +146,16 @@ struct HomeView: View {
                     }
                     
                     Spacer()
+                    
+                    // Therapist Mode Button
+                    Button(action: { showingTherapistSheet = true }) {
+                        Image(systemName: "stethoscope")
+                            .font(.system(size: 20))
+                            .foregroundStyle(.white.opacity(0.8))
+                            .padding(10)
+                            .background(Circle().fill(.ultraThinMaterial))
+                    }
+                    .padding(.trailing, 8)
                     
                     // Avatar Button
                     Button(action: { showingProfileSheet = true }) {
@@ -214,9 +228,46 @@ struct HomeView: View {
                 let newProfile = UserProfile(avatarColorHex: randomColorHex())
                 modelContext.insert(newProfile)
             }
+            
+            // Connect as Patient automatically
+            if !remoteManager.isConnected {
+                remoteManager.connect(as: .patient)
+            }
+        }
+        .onChange(of: remoteManager.isConnected) { _, connected in
+            if connected && remoteManager.role == .patient {
+                // Send initial state
+                let recent = logs.last?.courseTitle ?? "None"
+                remoteManager.sendStateUpdate(totalPractice: logs.count, recentCourse: recent)
+            }
         }
         .sheet(isPresented: $showingProfileSheet) {
             ProfileEditView(profile: currentUser)
+        }
+        .sheet(isPresented: $showingTherapistSheet) {
+            TherapistView()
+        }
+        .alert("Therapist Recommendation", isPresented: Binding(
+            get: { remoteManager.showRecommendationAlert },
+            set: { remoteManager.showRecommendationAlert = $0 }
+        )) {
+            Button("Start Now") {
+                if let payload = remoteManager.pendingRecommendation {
+                    // Find course
+                    if let course = Course.allCourses.first(where: { $0.title == payload.courseTitle }) {
+                        // We need to modify the course defaultSets potentially, but Course is immutable.
+                        // For now we just select it. A real impl would pass the override sets to BloomView.
+                        // Since onSelectCourse takes a Course, we might need a wrapper or just use default.
+                        // Ideally: BloomView should accept 'sets' override.
+                        onSelectCourse(course)
+                    }
+                }
+            }
+            Button("Later", role: .cancel) { }
+        } message: {
+            if let payload = remoteManager.pendingRecommendation {
+                Text("Your therapist recommends: \(payload.courseTitle) (\(payload.setDuration) sets)")
+            }
         }
     }
     
@@ -232,10 +283,30 @@ struct HomeView: View {
 struct ProfileEditView: View {
     @Bindable var profile: UserProfile
     @Environment(\.dismiss) var dismiss
+    @Environment(RemoteManager.self) private var remoteManager
     
     var body: some View {
         NavigationStack {
             Form {
+                Section(header: Text("Session Code")) {
+                    VStack(alignment: .leading) {
+                        Text("Share this code with your therapist")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        
+                        Text(remoteManager.roomCode)
+                            .font(.system(size: 32, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.blue)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding()
+                            .background(Color.blue.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .onTapGesture {
+                                UIPasteboard.general.string = remoteManager.roomCode
+                            }
+                    }
+                }
+                
                 Section(header: Text("Personal Info")) {
                     TextField("First Name", text: $profile.firstName)
                     TextField("Last Name", text: $profile.lastName)
@@ -268,6 +339,7 @@ struct ProfileEditView: View {
         }
         .presentationDetents([.medium])
     }
+
     
     private func randomColorHex() -> String {
         let colors = [

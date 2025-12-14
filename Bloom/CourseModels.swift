@@ -16,23 +16,31 @@ extension Color {
 
 // MARK: - Shared Models
 
-struct Course: Identifiable {
+struct Course: Identifiable, Hashable {
     let id = UUID()
     let title: String
     let subtitle: String
     let theme: CourseTheme
     let strategy: CourseStrategy
     let defaultSets: Int
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    static func == (lhs: Course, rhs: Course) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
-enum CourseStrategy {
+enum CourseStrategy: Hashable {
     case gentle   // Morning Awakening: Small angles, consistent span
     case rhythmic // Deep Focus: Repeating patterns
     case stretch  // Hand Yoga: Wide variations, diagonal angles
     case chaotic  // Cosmic Flow: Full random
 }
 
-enum CourseTheme {
+enum CourseTheme: Hashable {
     case sunrise
     case deepOcean
     case forest
