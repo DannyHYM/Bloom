@@ -31,7 +31,10 @@ class RemoteManager {
             generateCode()
         }
         
-        client = BloomClient(userId: userId, roomCode: roomCode)
+        let savedURL = UserDefaults.standard.string(forKey: "serverURL") ?? "ws://127.0.0.1:8080"
+        let url = URL(string: savedURL) ?? URL(string: "ws://127.0.0.1:8080")!
+        
+        client = BloomClient(hostname: url, userId: userId, roomCode: roomCode)
         
         client?.onConnectionStateChange = { [weak self] state in
             guard let self = self else { return }

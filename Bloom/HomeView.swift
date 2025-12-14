@@ -285,6 +285,8 @@ struct ProfileEditView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(RemoteManager.self) private var remoteManager
     
+    @AppStorage("serverURL") private var serverURL: String = "ws://127.0.0.1:8080"
+    
     var body: some View {
         NavigationStack {
             Form {
@@ -305,6 +307,20 @@ struct ProfileEditView: View {
                                 UIPasteboard.general.string = remoteManager.roomCode
                             }
                     }
+                }
+                
+                Section(header: Text("Server Settings")) {
+                    TextField("Server URL", text: $serverURL)
+                        .textInputAutocapitalization(.never)
+                        .keyboardType(.URL)
+                        .autocorrectionDisabled()
+                        .onSubmit {
+                            // Reconnect if URL changes
+                            if remoteManager.isConnected {
+                                remoteManager.disconnect()
+                                remoteManager.connect(as: .patient)
+                            }
+                        }
                 }
                 
                 Section(header: Text("Personal Info")) {

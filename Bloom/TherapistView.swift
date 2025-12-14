@@ -8,11 +8,18 @@ struct TherapistView: View {
     @State private var selectedCourse: Course?
     @State private var selectedSets: Double = 10
     
+    @AppStorage("serverURL") private var serverURL: String = "ws://127.0.0.1:8080"
+    
     var body: some View {
         NavigationStack {
             Form {
                 if !remoteManager.isConnected || remoteManager.role != .therapist {
                     Section(header: Text("Connection")) {
+                        TextField("Server URL", text: $serverURL)
+                            .textInputAutocapitalization(.never)
+                            .keyboardType(.URL)
+                            .autocorrectionDisabled()
+                        
                         TextField("Enter Patient Code", text: $inputCode)
                             .textInputAutocapitalization(.characters)
                             .font(.system(.body, design: .monospaced))
