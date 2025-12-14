@@ -91,12 +91,13 @@ struct ContentView: View {
         AppDelegate.orientationLock = orientation
         
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+            windowScene.windows.first?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+            
             if !allowAll {
                 // Force portrait
                 windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .portrait))
             }
         }
-        UIViewController.attemptRotationToDeviceOrientation()
         #endif
     }
 }
