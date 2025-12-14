@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		66637A222EEE16CE0098E836 /* Vortex in Frameworks */ = {isa = PBXBuildFile; productRef = 66637A212EEE16CE0098E836 /* Vortex */; };
+		66637A972EEE43C00098E836 /* Starscream in Frameworks */ = {isa = PBXBuildFile; productRef = 66637A962EEE43C00098E836 /* Starscream */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +29,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				66637A222EEE16CE0098E836 /* Vortex in Frameworks */,
+				66637A972EEE43C00098E836 /* Starscream in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -71,6 +73,7 @@
 			name = Bloom;
 			packageProductDependencies = (
 				66637A212EEE16CE0098E836 /* Vortex */,
+				66637A962EEE43C00098E836 /* Starscream */,
 			);
 			productName = Bloom;
 			productReference = 66D1EF1D2EE28888007CC70A /* Bloom.app */;
@@ -102,6 +105,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				66637A202EEE16CE0098E836 /* XCRemoteSwiftPackageReference "Vortex" */,
+				66637A952EEE43C00098E836 /* XCRemoteSwiftPackageReference "Starscream" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 66D1EF1E2EE28888007CC70A /* Products */;
@@ -359,6 +363,14 @@
 				minimumVersion = 1.0.4;
 			};
 		};
+		66637A952EEE43C00098E836 /* XCRemoteSwiftPackageReference "Starscream" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/daltoniam/Starscream.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.8;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -366,6 +378,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 66637A202EEE16CE0098E836 /* XCRemoteSwiftPackageReference "Vortex" */;
 			productName = Vortex;
+		};
+		66637A962EEE43C00098E836 /* Starscream */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66637A952EEE43C00098E836 /* XCRemoteSwiftPackageReference "Starscream" */;
+			productName = Starscream;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

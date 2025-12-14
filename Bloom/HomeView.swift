@@ -236,9 +236,12 @@ struct HomeView: View {
         }
         .onChange(of: remoteManager.isConnected) { _, connected in
             if connected && remoteManager.role == .patient {
-                // Send initial state
-                let recent = logs.last?.courseTitle ?? "None"
-                remoteManager.sendStateUpdate(totalPractice: logs.count, recentCourse: recent)
+                sendState()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .bloomRequestState)) { _ in
+            if remoteManager.role == .patient {
+                sendState()
             }
         }
         .sheet(isPresented: $showingProfileSheet) {
@@ -255,10 +258,6 @@ struct HomeView: View {
                 if let payload = remoteManager.pendingRecommendation {
                     // Find course
                     if let course = Course.allCourses.first(where: { $0.title == payload.courseTitle }) {
-                        // We need to modify the course defaultSets potentially, but Course is immutable.
-                        // For now we just select it. A real impl would pass the override sets to BloomView.
-                        // Since onSelectCourse takes a Course, we might need a wrapper or just use default.
-                        // Ideally: BloomView should accept 'sets' override.
                         onSelectCourse(course)
                     }
                 }
@@ -270,8 +269,13 @@ struct HomeView: View {
             }
         }
     }
+
+    func sendState() {
+        let recent = logs.last?.courseTitle ?? "None"
+        remoteManager.sendStateUpdate(totalPractice: logs.count, recentCourse: recent)
+    }
     
-    private func randomColorHex() -> String {
+    func randomColorHex() -> String {
         let colors = [
             "#FF5733", "#33FF57", "#3357FF", "#FF33F6", 
             "#33FFF6", "#F6FF33", "#FF8C00", "#9932CC"
@@ -285,7 +289,7 @@ struct ProfileEditView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(RemoteManager.self) private var remoteManager
     
-    @AppStorage("serverURL") private var serverURL: String = "ws://127.0.0.1:8080"
+    @AppStorage("serverURL") private var serverURL: String = "wss://opbloom.fly.dev"
     
     var body: some View {
         NavigationStack {
@@ -298,13 +302,15 @@ struct ProfileEditView: View {
                         
                         Text(remoteManager.roomCode)
                             .font(.system(size: 32, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(remoteManager.isConnected ? .blue : .gray)
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding()
-                            .background(Color.blue.opacity(0.1))
+                            .background(remoteManager.isConnected ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .onTapGesture {
-                                UIPasteboard.general.string = remoteManager.roomCode
+                                if remoteManager.isConnected {
+                                    UIPasteboard.general.string = remoteManager.roomCode
+                                }
                             }
                     }
                 }
@@ -357,7 +363,7 @@ struct ProfileEditView: View {
     }
 
     
-    private func randomColorHex() -> String {
+    func randomColorHex() -> String {
         let colors = [
             "#FF5733", "#33FF57", "#3357FF", "#FF33F6", 
             "#33FFF6", "#F6FF33", "#FF8C00", "#9932CC",

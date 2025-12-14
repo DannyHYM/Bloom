@@ -4,7 +4,8 @@ import SwiftData
 @Observable
 class RemoteManager {
     var isConnected = false
-    var roomCode = ""
+    var roomCode = "" // User's own "Patient" code
+    private var activeRoomCode = "" // The room code we are currently connected to
     var role: UserRole = .patient
     
     // Therapist Data
@@ -25,16 +26,21 @@ class RemoteManager {
     
     func connect(as role: UserRole, code: String? = nil) {
         self.role = role
+        
+        // Determine the room code for the connection
         if let code = code {
-            self.roomCode = code
-        } else if roomCode.isEmpty {
-            generateCode()
+            self.activeRoomCode = code
+        } else {
+            if roomCode.isEmpty {
+                generateCode()
+            }
+            self.activeRoomCode = roomCode
         }
         
-        let savedURL = UserDefaults.standard.string(forKey: "serverURL") ?? "ws://127.0.0.1:8080"
-        let url = URL(string: savedURL) ?? URL(string: "ws://127.0.0.1:8080")!
+        let savedURL = UserDefaults.standard.string(forKey: "serverURL") ?? "wss://opbloom.fly.dev"
+        let url = URL(string: savedURL) ?? URL(string: "wss://opbloom.fly.dev")!
         
-        client = BloomClient(hostname: url, userId: userId, roomCode: roomCode)
+        client = BloomClient(hostname: url, userId: userId, roomCode: activeRoomCode)
         
         client?.onConnectionStateChange = { [weak self] state in
             guard let self = self else { return }
@@ -62,12 +68,12 @@ class RemoteManager {
     }
     
     private func sendHandshake() {
-        let payload = HandshakePayload(role: role, roomCode: roomCode)
+        let payload = HandshakePayload(role: role, roomCode: activeRoomCode)
         sendMessage(type: .handshake, payload: payload)
         
-        if role == .patient {
-             // Send initial empty state or current state if available
-             // Real state update happens when triggered by View
+        if role == .therapist {
+            // Request state from patient immediately upon joining
+            sendMessage(type: .requestState, payload: "request")
         }
     }
     
@@ -103,6 +109,13 @@ class RemoteManager {
                 if let payload = try? JSONDecoder().decode(PatientStatePayload.self, from: message.data) {
                     self.patientState = payload
                 }
+            }
+        case .requestState:
+            if role == .patient {
+                // Trigger view layer to send state? Or rely on RemoteManager if it had access to models.
+                // Since RemoteManager doesn't hold the models, we need a callback or notification.
+                // For now, we'll emit a notification that HomeView can listen to.
+                NotificationCenter.default.post(name: .bloomRequestState, object: nil)
             }
         case .recommendCourse:
             if role == .patient {

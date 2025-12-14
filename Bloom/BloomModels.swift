@@ -4,6 +4,7 @@ struct BloomMessage: Codable, Identifiable {
     enum MessageType: String, Codable {
         case handshake // Client -> Server: Join room
         case stateUpdate // Patient -> Server -> Therapist: Sync data
+        case requestState // Therapist -> Server -> Patient: Ask for data
         case recommendCourse // Therapist -> Server -> Patient: Send command
     }
 
