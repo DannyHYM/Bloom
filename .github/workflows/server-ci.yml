@@ -1,0 +1,28 @@
+name: Server CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Server/**'
+      - '.github/workflows/server-ci.yml'
+  pull_request:
+    paths:
+      - 'Server/**'
+      - '.github/workflows/server-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    container:
+      image: swift:latest
+    defaults:
+      run:
+        working-directory: Server
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Test
+      run: swift test
